@@ -1,11 +1,21 @@
 import { prisma } from '@/lib/db'
 import { ScrapedJob } from './types'
 import { generateSampleJobs } from './sample-data'
+import { fetchJobsFromSerpApi } from './serpapi'
 
 export async function scrapeAllPortals(keywords?: string[]): Promise<{ newJobs: number; total: number }> {
-  // For the MVP, we use sample data since real scrapers would be blocked
-  // In production, you'd call actual scrapers here and fall back to sample data
-  const jobs: ScrapedJob[] = generateSampleJobs(200)
+  let jobs: ScrapedJob[] = []
+
+  try {
+    jobs = await fetchJobsFromSerpApi()
+  } catch (err) {
+    console.error('[scrapeAllPortals] SerpApi failed, falling back to sample data:', err)
+  }
+
+  if (jobs.length === 0) {
+    console.log('[scrapeAllPortals] Using sample data as fallback')
+    jobs = generateSampleJobs(200)
+  }
 
   let newJobs = 0
 

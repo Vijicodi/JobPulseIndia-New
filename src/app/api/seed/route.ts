@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateSampleJobs } from '@/lib/scraper/sample-data'
+import { scrapeAllPortals } from '@/lib/scraper'
 
 /**
- * POST /api/seed — Seed the database with sample jobs for development.
+ * POST /api/seed — Seed the database with real jobs from SerpApi
+ * (falls back to sample data if API is unavailable).
  *
  * - If the DB already has 50+ jobs, returns early with a message.
- * - Otherwise generates and inserts 200 sample jobs (skipping duplicates).
+ * - Otherwise fetches and inserts jobs (skipping duplicates).
  */
 export async function POST() {
   try {
@@ -21,51 +22,13 @@ export async function POST() {
       })
     }
 
-    const jobs = generateSampleJobs(200)
-    let added = 0
-
-    for (const job of jobs) {
-      // Deduplicate by title + company + sourcePortal
-      const existing = await prisma.job.findFirst({
-        where: {
-          title: job.title,
-          company: job.company,
-          sourcePortal: job.sourcePortal,
-        },
-      })
-
-      if (!existing) {
-        await prisma.job.create({
-          data: {
-            title: job.title,
-            company: job.company,
-            companyLogoUrl: job.companyLogoUrl || null,
-            locations: JSON.stringify(job.locations),
-            experienceMin: job.experienceMin ?? null,
-            experienceMax: job.experienceMax ?? null,
-            salaryMin: job.salaryMin ?? null,
-            salaryMax: job.salaryMax ?? null,
-            skills: job.skills ? JSON.stringify(job.skills) : null,
-            description: job.description || null,
-            workMode: job.workMode || null,
-            sourcePortal: job.sourcePortal,
-            sourceUrl: job.sourceUrl,
-            postedAt: job.postedAt || new Date(),
-            industry: job.industry || null,
-            isActive: true,
-          },
-        })
-        added++
-      }
-    }
-
-    const total = await prisma.job.count()
+    const result = await scrapeAllPortals()
 
     return NextResponse.json({
       success: true,
-      message: `Seeded ${added} new jobs.`,
-      added,
-      total,
+      message: `Seeded ${result.newJobs} new jobs.`,
+      added: result.newJobs,
+      total: result.total,
     })
   } catch (error) {
     console.error('[POST /api/seed]', error)
