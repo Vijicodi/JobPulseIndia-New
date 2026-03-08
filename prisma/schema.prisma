@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                  String        @id @default(uuid())
+  name                String
+  email               String        @unique
+  passwordHash        String
+  preferredLocations  String?       // JSON array stored as string
+  preferredCategories String?       // JSON array stored as string
+  experienceLevel     String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  bookmarks           Bookmark[]
+  savedSearches       SavedSearch[]
+}
+
+model Job {
+  id               String     @id @default(uuid())
+  title            String
+  company          String
+  companyLogoUrl   String?
+  locations        String     // JSON array as string
+  experienceMin    Float?
+  experienceMax    Float?
+  salaryMin        Float?     // in LPA
+  salaryMax        Float?     // in LPA
+  skills           String?    // JSON array as string
+  description      String?
+  workMode         String?    // "remote" | "hybrid" | "office"
+  sourcePortal     String     // "naukri" | "indeed" | "shine" | "foundit"
+  sourceUrl        String
+  postedAt         DateTime?
+  scrapedAt        DateTime   @default(now())
+  industry         String?
+  isActive         Boolean    @default(true)
+  duplicateGroupId String?
+  bookmarks        Bookmark[]
+
+  @@index([title])
+  @@index([company])
+  @@index([sourcePortal])
+  @@index([workMode])
+  @@index([isActive])
+  @@index([postedAt])
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
+
+model SavedSearch {
+  id        String    @id @default(uuid())
+  userId    String
+  query     String
+  filters   String?   // JSON object as string
+  lastRunAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
