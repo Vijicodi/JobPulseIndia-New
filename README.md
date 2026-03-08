@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobPulse India
+
+A job aggregation platform for the Indian market, powered by Next.js and SerpApi.
 
 ## Getting Started
 
